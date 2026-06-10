@@ -3,8 +3,8 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "I have a server called pearl that runs my k8s master and gitlab. I also have a worker node called white. Can you help me keep track of these machines and their SSH details?",
-      "expected_output": "The agent should offer to create or update an inventory entry for 'pearl' and 'white', asking for SSH host, user, key path, and sudo method.",
+      "prompt": "I have a server called alpha that runs my k8s master and gitlab. I also have a worker node called beta. Can you help me keep track of these machines and their SSH details?",
+      "expected_output": "The agent should offer to create or update an inventory entry for 'alpha' and 'beta', asking for SSH host, user, key path, and sudo method.",
       "files": []
     },
     {
