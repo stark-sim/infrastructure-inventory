@@ -48,7 +48,17 @@ fi
 
 echo "=== Testing SSH to $NODE_ID ($USER@$HOST:$PORT) ==="
 
-# Test 1: basic connectivity
+# Test 1: key file permissions
+if [[ -n "$KEY" && "$KEY" != "null" && -f "$KEY" ]]; then
+  PERM="$(stat -f '%Lp' "$KEY" 2>/dev/null || stat -c '%a' "$KEY" 2>/dev/null || echo unknown)"
+  if [[ "$PERM" != "600" && "$PERM" != "unknown" ]]; then
+    echo "FAIL: SSH key $KEY has permissions $PERM (must be 600)"
+    exit 1
+  fi
+  echo "PASS: SSH key permissions ($PERM)"
+fi
+
+# Test 2: basic connectivity
 if ! ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new -p "$PORT" $KEY_ARG "${USER}@${HOST}" echo "OK" 2>/dev/null; then
   echo "FAIL: SSH key auth failed"
   exit 1
