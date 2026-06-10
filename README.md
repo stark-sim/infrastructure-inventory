@@ -1,28 +1,27 @@
 # Infrastructure Inventory Skill
 
-An agent skill for maintaining a structured registry of infrastructure nodes (servers, VMs, bare metal, cluster nodes) and using that registry to automate SSH connections, remote operations, and deployment targeting.
+A minimal agent skill that reads your personal node registry so the agent knows which machine does what — and stops running server commands on your local workstation.
 
-## What It Does
+## The Problem
 
-- **Tracks nodes**: hostname, role, purpose, SSH credentials, sudo auth, deployed services, resource specs
-- **Automates SSH**: builds correct `ssh -i <key> -p <port> <user>@<host>` commands from inventory
-- **Validates connectivity**: checks key auth and sudo before destructive operations
-- **Enforces hygiene**: validates YAML schema, warns about passwords in git-tracked files
+You say: *"Check the k8s cluster"*  
+Agent thinks: *"Let me run kubectl on this mac"*  
+Reality: *kubectl only works on the k8s master node*
 
-## Quick Start
+This skill fixes that by making the agent read your infrastructure list before acting.
 
-1. Install the skill into your agent's skill directory (e.g. `~/.agents/skills/`)
-2. Create `~/.agents/inventory.yaml` from the template below
-3. The agent reads it automatically whenever you mention servers, SSH, or deployments
+## Setup
 
-### Minimal Inventory Template
+1. Put this skill in your agent's skill directory (e.g. `~/.agents/skills/infrastructure-inventory/`)
+2. Create `~/.agents/inventory.yaml`:
 
 ```yaml
 nodes:
   my-server:
     name: "My Server"
     role: k8s-master
-    purpose: "Kubernetes control plane and GitLab"
+    purpose: "Kubernetes control plane"
+    location: private-network
     ssh:
       host: 192.168.1.10
       user: admin
@@ -30,23 +29,11 @@ nodes:
       key: ~/.ssh/id_ed25519
     sudo:
       method: password
-      password: null   # set plaintext only in local files, never in git
-    services:
-      - name: gitlab
-        type: ci-server
-        ports: [443]
-    tags: [prod, k8s]
+      password: null   # set plaintext only in local files
+    tags: [prod]
 ```
 
-## Scripts
-
-- `scripts/ssh-test.sh <node-id>` — verify SSH key auth and sudo for a node
-- `scripts/validate.sh [inventory.yaml]` — validate YAML schema and check for password leaks
-
-## Security Notes
-
-- `sudo.password` should be `null` in any git-tracked file. Only store plaintext passwords in `~/.agents/inventory.yaml`, which should be gitignored.
-- The skill prefers `sudo -n` (non-interactive) and falls back to password only when stored and user-approved.
+3. Mention servers, SSH, or deployments — the skill triggers automatically.
 
 ## License
 
