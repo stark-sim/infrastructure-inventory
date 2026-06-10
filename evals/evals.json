@@ -1,0 +1,23 @@
+{
+  "skill_name": "infrastructure-inventory",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have a server called pearl that runs my k8s master and gitlab. I also have a worker node called white. Can you help me keep track of these machines and their SSH details?",
+      "expected_output": "The agent should offer to create or update an inventory entry for 'pearl' and 'white', asking for SSH host, user, key path, and sudo method.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Connect to my gateway server and check if nginx is running.",
+      "expected_output": "The agent should look up the gateway server in the inventory, build the SSH command with correct key/user/host, and run a remote command to check nginx status.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I just added a new staging database server. Add it to my infrastructure list.",
+      "expected_output": "The agent should guide the user through adding a new node entry with role=database, location, ssh details, and services.",
+      "files": []
+    }
+  ]
+}
