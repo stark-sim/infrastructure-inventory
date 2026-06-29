@@ -21,31 +21,36 @@ fi
 
 ERRORS=0
 
-# Check for plaintext passwords in the file
-PASSWORDS=$(python3 -c "
+# Collect any plaintext secrets in the file
+SECRETS=$(python3 -c "
 import yaml
 data = yaml.safe_load(open('$FILE'))
 found = []
 for nid, node in (data.get('nodes') or {}).items():
     pw = node.get('sudo', {}).get('password')
     if pw and str(pw) not in ('null', 'None', ''):
-        found.append(nid)
+        found.append(f'node.{nid}.sudo.password')
+    for svc in node.get('services', []):
+        creds = svc.get('credentials', {})
+        for k, v in creds.items():
+            if v and str(v) not in ('null', 'None', ''):
+                found.append(f'node.{nid}.service.{svc.get(\"name\", \"?\")}.{k}')
+for sid, svc in (data.get('services') or {}).items():
+    creds = svc.get('credentials', {})
+    for k, v in creds.items():
+        if v and str(v) not in ('null', 'None', ''):
+            found.append(f'service.{sid}.{k}')
 if found:
     print(','.join(found))
 " 2>/dev/null || true)
 
-if [[ -n "$PASSWORDS" ]]; then
+if [[ -n "$SECRETS" ]]; then
   if [[ "$IS_GIT_TRACKED" == "true" ]]; then
-    echo "FAIL: git-tracked file contains plaintext passwords for nodes: $PASSWORDS"
+    echo "FAIL: git-tracked file contains plaintext secrets: $SECRETS"
     ERRORS=$((ERRORS + 1))
   else
-    echo "WARN: file contains passwords. Ensure it is NOT git-tracked: $FILE"
+    echo "WARN: file contains secrets. Ensure it is NOT git-tracked: $FILE"
   fi
-fi
-
-# If git-tracked, ensure all passwords are null
-if [[ "$IS_GIT_TRACKED" == "true" && -n "$PASSWORDS" ]]; then
-  echo "ACTION: Setting all passwords to null before write"
 fi
 
 if [[ "$ERRORS" -gt 0 ]]; then
