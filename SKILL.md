@@ -1,30 +1,65 @@
 ---
 name: infrastructure-inventory
-description: Read the user's personal infrastructure node and service registry before doing anything that might involve remote servers, SSH, deployments, service APIs, or infrastructure operations. Use when the user mentions nodes, servers, clusters, SSH, docker on remote hosts, kubectl, systemctl, nginx, gitlab, github, harbor, registry tokens, CI PATs, or any operation that might belong on a remote machine or service.
+description: Use when a task may depend on choosing an available development environment, device, tool, node, or service, especially before local or remote execution, SSH, deployment, hardware-intensive work, or service API use.
 ---
 
 # Infrastructure Inventory
 
-A personal registry of **nodes** and **services** so the agent knows which machine does what, which service to use, and where credentials live — without confusing the local workstation with remote hosts.
+A registry of available development environments, devices, tools, nodes, and
+services. Its job is to answer one question before execution: **where and with
+what should this work run?**
 
 ## Read It First
 
-**At the start of any session involving remote servers, deployments, infrastructure, or service APIs**: read `~/.agents/inventory.yaml`.
+Read `~/.agents/inventory.yaml` when the execution target or required capability
+is uncertain. This includes local development, hardware selection, remote work,
+deployments, and service APIs.
 
 If it doesn't exist, ask the user to create one or bootstrap from context.
 
 ## Why It Exists
 
 Common mistakes:
-- The user says "check the k8s cluster" and the agent runs `kubectl` on the local mac.
-- The user says "check CI" and the agent doesn't know whether they mean GitLab or GitHub.
-- The user says "worker node" and the agent picks the wrong machine.
+- Starting Docker on a workstation where it is intentionally unavailable.
+- Choosing CPU when a compatible GPU environment exists, or choosing a busy GPU.
+- Assuming a runtime or CLI is installed without checking its registered location.
+- Running a server command locally or choosing the wrong CI/Git service.
 
 **Don't.** Check the inventory first to find the right node or service, then act.
+
+## Entity Model
+
+| Entity | Represents | Examples |
+|---|---|---|
+| `environments` | Runnable contexts | local shell, conda env, container, k8s context |
+| `devices` | Usable hardware | CPU, CUDA GPU, MPS GPU, accelerator |
+| `tools` | Installed capabilities | Node.js, Python, Docker, kubectl, compiler |
+| `nodes` | Local or remote hosts | workstation, GPU server, cluster node |
+| `services` | Addressable endpoints | GitHub, GitLab, registry, database, API |
+
+All sections are maps keyed by stable IDs. Keep only facts that help select or
+reach a target; detailed procedures belong in their owning skills.
 
 ## Minimal Schema
 
 ```yaml
+environments:
+  local-shell:
+    name: "Local shell"
+    type: shell
+    node: mac-local
+    status: available
+devices:
+  apple-gpu:
+    name: "Apple GPU"
+    type: gpu
+    node: mac-local
+    status: available
+tools:
+  nodejs:
+    name: "Node.js"
+    type: runtime
+    environments: [local-shell]
 nodes:
   <node-id>:
     name: "Human-readable name"
@@ -68,9 +103,22 @@ services:
 - **Node `services`**: services running on that specific machine. A node can have many responsibilities.
 - **Top-level `services`**: external/SaaS endpoints not tied to one node.
 
+## Selection Rule
+
+1. Determine the capabilities and constraints the task actually needs.
+2. Filter inventory entries by availability, compatibility, access, and policy.
+3. Choose the smallest capable target. Do not start or install something merely
+   because it appears in inventory.
+4. Verify volatile facts such as current load, free disk, port use, process
+   state, and service health immediately before execution.
+
+Inventory describes known options; it is not live monitoring and does not
+authorize an operation.
+
 ## Rules
 
-1. **Read before acting.** If the user mentions a node name, a service, a token, or a task that sounds like it belongs on a server, read the inventory first.
+1. **Read before choosing.** If a task depends on an environment, device, tool,
+   node, or service, read the inventory first.
 2. **Run on the right machine.** Do NOT run server-side commands (`kubectl`, `systemctl`, `docker` on remote hosts, editing remote configs, etc.) on the local workstation unless the node has `location: local`.
 3. **Pick the right service.** If multiple services match a request (e.g., GitLab and GitHub both exist), use the `notes` field or ask the user for preference.
 4. **SSH by default.** For remote nodes, build `ssh -p <port> -i <key> <user>@<host> "<command>"` and run commands there.
@@ -78,6 +126,15 @@ services:
 6. **No secret leaks.** Never echo a stored password/token in conversation. Never write non-null secrets to git-tracked files.
 
 ## Workflows
+
+### Find an Environment, Device, or Tool
+
+Match required capabilities first, then follow its `node`, `environments`, or
+related references. Verify dynamic availability at execution time.
+
+- "run a Node build" -> environment containing a compatible Node.js tool
+- "GPU test" -> available device plus a compatible runtime environment
+- "use Docker" -> node and environment where Docker is permitted
 
 ### Find a Node
 

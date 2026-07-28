@@ -4,11 +4,55 @@
 
 ```yaml
 version: 1                 # schema version, optional, default 1
-nodes:                     # required, map of node-id -> Node
+environments:              # optional, map of environment-id -> Environment
+  <environment-id>: { ... }
+devices:                   # optional, map of device-id -> Device
+  <device-id>: { ... }
+tools:                     # optional, map of tool-id -> Tool
+  <tool-id>: { ... }
+nodes:                     # optional, map of node-id -> Node
   <node-id>: { ... }
 services:                  # optional, map of service-id -> Service for external/SaaS endpoints
   <service-id>: { ... }
 ```
+
+At least one of the five entity maps should be present. References use stable
+IDs from the corresponding maps.
+
+## Environment Object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Human-readable name |
+| `type` | string | yes | `shell`, `conda`, `container`, `k8s-context`, or free-form |
+| `node` | string | no | Node ID hosting the environment |
+| `status` | string | no | Last known availability; verify before use |
+| `tools` | string[] | no | Tool IDs available here |
+| `devices` | string[] | no | Device IDs visible here |
+| `notes` | string | no | Selection constraints |
+
+## Device Object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Human-readable name |
+| `type` | string | yes | `cpu`, `gpu`, `accelerator`, or free-form |
+| `node` | string | no | Node ID containing the device |
+| `status` | string | no | Last known availability; verify current load before use |
+| `capabilities` | string[] | no | CUDA, MPS, memory class, architecture, etc. |
+| `notes` | string | no | Policy or compatibility constraints |
+
+## Tool Object
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `name` | string | yes | Human-readable name |
+| `type` | string | yes | `runtime`, `compiler`, `cli`, `container-engine`, or free-form |
+| `environments` | string[] | no | Environment IDs containing the tool |
+| `version` | string | no | Last known version |
+| `path` | string | no | Executable or installation path |
+| `capabilities` | string[] | no | Features relevant to selection |
+| `notes` | string | no | Policy or usage constraints |
 
 ## Node Object
 

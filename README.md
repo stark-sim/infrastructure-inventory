@@ -1,6 +1,7 @@
 # Infrastructure Inventory Skill
 
-A minimal agent skill that reads your personal node and service registry so the agent knows which machine does what, which service to use, and where credentials live — without running server commands on your local workstation.
+A minimal agent skill for selecting an available development environment,
+device, tool, node, or service before execution.
 
 ## The Problem
 
@@ -11,7 +12,9 @@ Reality: *kubectl only works on the k8s master node*
 Or you say: *"Check CI"*  
 Agent doesn't know whether you mean GitLab or GitHub.
 
-This skill fixes both by making the agent read your infrastructure list before acting.
+The same problem occurs when choosing a local runtime, GPU, container engine, or
+other development tool. This skill makes the agent read one inventory before
+choosing where and with what to run the task.
 
 ## Setup
 
@@ -19,6 +22,21 @@ This skill fixes both by making the agent read your infrastructure list before a
 2. Create `~/.agents/inventory.yaml`:
 
 ```yaml
+environments:
+  local-shell:
+    name: Local shell
+    type: shell
+    node: mac-local
+devices:
+  apple-gpu:
+    name: Apple GPU
+    type: gpu
+    node: mac-local
+tools:
+  nodejs:
+    name: Node.js
+    type: runtime
+    environments: [local-shell]
 nodes:
   my-server:
     name: "My Server"
@@ -52,7 +70,8 @@ services:
     notes: "mirror only; GitLab is primary CI"
 ```
 
-3. Mention servers, SSH, deployments, CI, or registry tokens — the skill triggers automatically.
+3. Mention a development environment, device, tool, node, service, remote
+   operation, deployment, or hardware requirement and the skill can trigger.
 
 ## Security
 

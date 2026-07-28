@@ -19,19 +19,25 @@ if ! python3 -c "import yaml; yaml.safe_load(open('$INVENTORY'))" 2>/dev/null; t
 fi
 echo "PASS: YAML syntax"
 
-# Check each node has required fields
-NODES=$(python3 -c "
+# Check each inventory entity has its minimal identifying fields.
+ENTITIES=$(python3 -c "
 import yaml
 data = yaml.safe_load(open('$INVENTORY'))
-for nid, node in (data.get('nodes') or {}).items():
-    missing = []
-    for req in ['name', 'role', 'purpose']:
-        if not node.get(req):
-            missing.append(req)
-    if missing:
-        print(f'FAIL: node {nid} missing fields: {missing}')
-    else:
-        print(f'PASS: node {nid}')
+requirements = {
+    'environments': ['name', 'type'],
+    'devices': ['name', 'type'],
+    'tools': ['name', 'type'],
+    'nodes': ['name', 'role', 'purpose'],
+    'services': ['name', 'type'],
+}
+for section, required in requirements.items():
+    for item_id, item in (data.get(section) or {}).items():
+        missing = [field for field in required if not item.get(field)]
+        label = section[:-1]
+        if missing:
+            print(f'FAIL: {label} {item_id} missing fields: {missing}')
+        else:
+            print(f'PASS: {label} {item_id}')
 " 2>/dev/null)
 
 while IFS= read -r line; do
@@ -39,29 +45,7 @@ while IFS= read -r line; do
   if [[ "$line" == FAIL* ]]; then
     ERRORS=$((ERRORS + 1))
   fi
-done <<< "$NODES"
-
-# Check top-level services have required fields
-SERVICES=$(python3 -c "
-import yaml
-data = yaml.safe_load(open('$INVENTORY'))
-for sid, svc in (data.get('services') or {}).items():
-    missing = []
-    for req in ['name', 'type']:
-        if not svc.get(req):
-            missing.append(req)
-    if missing:
-        print(f'FAIL: service {sid} missing fields: {missing}')
-    else:
-        print(f'PASS: service {sid}')
-" 2>/dev/null)
-
-while IFS= read -r line; do
-  echo "$line"
-  if [[ "$line" == FAIL* ]]; then
-    ERRORS=$((ERRORS + 1))
-  fi
-done <<< "$SERVICES"
+done <<< "$ENTITIES"
 
 # Security check: warn if any plaintext secret is in a git-tracked file
 if git -C "$(dirname "$INVENTORY")" ls-files --error-unmatch "$(basename "$INVENTORY")" &>/dev/null; then
