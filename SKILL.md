@@ -1,6 +1,6 @@
 ---
 name: infrastructure-inventory
-description: Use when a task may depend on choosing an available development environment, device, tool, node, or service, especially before local or remote execution, SSH, deployment, hardware-intensive work, or service API use.
+description: Use when a task may depend on choosing an available development environment, device, tool, node, or service, especially before local or remote execution, SSH, deployment, hardware-intensive work, or service API use. Also use when starting local services that have stateful dependencies (database, Redis, message queue, Docker), when a required dependency or port is missing/conflicting locally, or when deciding where integration/E2E testing infrastructure should run — the answer may be a remote node or an SSH tunnel rather than installing/starting it locally. Also use whenever a workflow step — a check, gate, build, test, deploy, verification script, CI job, or pre-push hook — needs specific tooling (kubectl, docker, a compiler, a service endpoint): read the inventory to decide which registered node actually has that tool before running it anywhere, so cluster-side checks land on cluster nodes instead of rotting on a workstation. Also use before installing anything locally that a remote node already provides.
 ---
 
 # Infrastructure Inventory
@@ -24,6 +24,9 @@ Common mistakes:
 - Choosing CPU when a compatible GPU environment exists, or choosing a busy GPU.
 - Assuming a runtime or CLI is installed without checking its registered location.
 - Running a server command locally or choosing the wrong CI/Git service.
+- Installing or starting a stateful dependency (Postgres, Redis, Docker) locally
+  when the project's sanctioned instance lives on a remote node — prefer an SSH
+  tunnel to that node instead.
 
 **Don't.** Check the inventory first to find the right node or service, then act.
 
