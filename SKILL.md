@@ -1,6 +1,6 @@
 ---
 name: infrastructure-inventory
-description: Use when a task may depend on choosing an available development environment, device, tool, node, or service, especially before local or remote execution, SSH, deployment, hardware-intensive work, or service API use. Also use when starting local services that have stateful dependencies (database, Redis, message queue, Docker), when a required dependency or port is missing/conflicting locally, or when deciding where integration/E2E testing infrastructure should run — the answer may be a remote node or an SSH tunnel rather than installing/starting it locally. Also use whenever a workflow step — a check, gate, build, test, deploy, verification script, CI job, or pre-push hook — needs specific tooling (kubectl, docker, a compiler, a service endpoint): read the inventory to decide which registered node actually has that tool before running it anywhere, so cluster-side checks land on cluster nodes instead of rotting on a workstation. Also use before installing anything locally that a remote node already provides.
+description: Use when a task may depend on choosing an available development environment, device, tool, node, or service, especially before local or remote execution, SSH, deployment, hardware-intensive work, or service API use. Also use when starting local services that have stateful dependencies (database, Redis, message queue, Docker), when a required dependency or port is missing/conflicting locally, or when deciding where integration/E2E testing infrastructure should run — the answer may be a remote node or an SSH tunnel rather than installing/starting it locally. Also use whenever a workflow step — a check, gate, build, test, deploy, verification script, CI job, or pre-push hook — needs specific tooling (kubectl, docker, a compiler, a service endpoint): read the inventory to decide which registered node actually has that tool before running it anywhere, so cluster-side checks land on cluster nodes instead of rotting on a workstation. Also use before installing anything locally that a remote node already provides. Also use when creating, editing, or reviewing executable workflow artifacts — scripts, gates, pre-push hooks, CI jobs, Makefiles, preflight or drift checks — because every command baked into such an artifact must be matched to a node that actually provides its tool; placement decided at authoring time, not at run time.
 ---
 
 # Infrastructure Inventory
@@ -27,6 +27,15 @@ Common mistakes:
 - Installing or starting a stateful dependency (Postgres, Redis, Docker) locally
   when the project's sanctioned instance lives on a remote node — prefer an SSH
   tunnel to that node instead.
+- **Baking a tool into an executable artifact that the runtime node does not
+  provide.** When you write `kubectl`, `docker`, or any node-specific CLI into a
+  script, gate, pre-push hook, CI job, or Makefile, you are making a placement
+  decision for every future run of that artifact. Check the inventory at
+  authoring time: if the tool is not registered on the node where the artifact
+  will run, the step belongs on the node that has it. A check that only works
+  via a workstation-bundled symlink (e.g. Docker Desktop's `kubectl`) will rot
+  the day the bundle updates, and the failure surfaces as a false-positive gate
+  blocking unrelated work — long after the authoring decision is forgotten.
 
 **Don't.** Check the inventory first to find the right node or service, then act.
 
@@ -123,6 +132,7 @@ authorize an operation.
 1. **Read before choosing.** If a task depends on an environment, device, tool,
    node, or service, read the inventory first.
 2. **Run on the right machine.** Do NOT run server-side commands (`kubectl`, `systemctl`, `docker` on remote hosts, editing remote configs, etc.) on the local workstation unless the node has `location: local`.
+2a. **Author on the right machine too.** Before adding any command to an executable artifact (script, gate, hook, CI job, Makefile, preflight/drift check), look up each required tool in the inventory and confirm the node where that artifact runs provides it. Workstation-class tools used only via bundled symlinks do not count as provided. If the right node is remote, make the artifact SSH there (or split the artifact into a local static part and a remote part) instead of embedding the command locally.
 3. **Pick the right service.** If multiple services match a request (e.g., GitLab and GitHub both exist), use the `notes` field or ask the user for preference.
 4. **SSH by default.** For remote nodes, build `ssh -p <port> -i <key> <user>@<host> "<command>"` and run commands there.
 5. **Use credentials from inventory.** For API calls to GitLab/GitHub/Harbor, use the token/password stored in the service's `credentials` block.
